@@ -1,5 +1,4 @@
 .env
 .venv
 .DS_store
-scripts/tt_download.py
 /data

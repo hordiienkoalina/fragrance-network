@@ -3,21 +3,23 @@ import os
 import subprocess
 import whisper
 import json
-from pydub import AudioSegment
 import argparse
+from dotenv import load_dotenv
 
 class SpeechConverter:
-    def __init__(self, mp4, method='openai'): 
+    def __init__(self, mp4, json_output_folder, mp3_output_folder, method='openai'):
         self.mp4 = mp4
+        self.json_output_folder = json_output_folder
+        self.mp3_output_folder = mp3_output_folder
         self.method = method
-        self.basefilepath = re.match(r'(.*)\.mp4$', self.mp4).group(1)
+        self.basefilename = re.match(r'(.*)\.mp4$', os.path.basename(self.mp4)).group(1)
         # Load OpenAI Whisper model
         self.model = whisper.load_model("base")
         
     def convert_mp4_to_mp3(self):
         """Convert mp4 video to mp3 audio."""
-        mp3_file = f"{self.basefilepath}.mp3"
-        ffmpeg_command = [ "ffmpeg", "-i", self.mp4, "-vn", "-acodec", "mp3", mp3_file ]
+        mp3_file = os.path.join(self.mp3_output_folder, f"{self.basefilename}.mp3")
+        ffmpeg_command = ["ffmpeg", "-i", self.mp4, "-vn", "-acodec", "mp3", mp3_file]
         try:
             subprocess.run(ffmpeg_command, check=True)
             print(f"MP3 Conversion successful for {self.mp4}.\n")
@@ -39,8 +41,9 @@ class SpeechConverter:
             print(f"An error occurred during transcription: {e}")
             return None
 
-    def save_as_json(self, text, output_file):
+    def save_as_json(self, text):
         """Save transcribed text as a JSON file."""
+        output_file = os.path.join(self.json_output_folder, f"{self.basefilename}.json")
         with open(output_file, 'w') as json_file:
             json.dump({"text": text}, json_file, indent=4)
         print(f"Data saved as JSON: {output_file}.\n")
@@ -54,7 +57,7 @@ class SpeechConverter:
             extracted_text = self.convert_speech_to_text(mp3_file)
             if extracted_text:
                 # Step 3: Save transcribed text as JSON
-                self.save_as_json(extracted_text, f"{self.basefilepath}.json")
+                self.save_as_json(extracted_text)
             return extracted_text
         return None
 
@@ -62,7 +65,15 @@ def main():
     # Set up argparse for CLI arguments
     parser = argparse.ArgumentParser(description="Batch Video Transcription Script")
     parser.add_argument("data_folder", type=str, help="Path to the folder containing mp4 video files.")
+    parser.add_argument("json_output_folder", type=str, help="Path to the folder where JSON results will be saved.")
+    parser.add_argument("mp3_output_folder", type=str, help="Path to the folder where MP3 files will be saved.")
     args = parser.parse_args()
+
+    # Ensure output folders exist
+    if not os.path.exists(args.json_output_folder):
+        os.makedirs(args.json_output_folder)
+    if not os.path.exists(args.mp3_output_folder):
+        os.makedirs(args.mp3_output_folder)
 
     # Get list of all .mp4 files in the specified directory
     mp4_files = [f for f in os.listdir(args.data_folder) if f.endswith(".mp4")]
@@ -75,7 +86,7 @@ def main():
     for mp4_file in mp4_files:
         mp4_filepath = os.path.join(args.data_folder, mp4_file)
         print(f"Processing video: {mp4_filepath}")
-        speech_converter = SpeechConverter(mp4_filepath)
+        speech_converter = SpeechConverter(mp4_filepath, args.json_output_folder, args.mp3_output_folder)
         transcription = speech_converter.extract_and_transform_speech()
 
         if transcription:
