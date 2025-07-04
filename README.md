@@ -1,4 +1,4 @@
-# Descrtiption
+# Description
 
 This project explores how to create a network of similar perfumes by processing TikTok videos from fragrance creators. Using a custom pipeline that includes audio transcription, OCR, named entity recognition via ChatGPT, TF-IDF embeddings, and Non-Negative Matrix Factorization (NMF), the project maps perfumes based on shared descriptors and computes pairwise cosine similarity. The goal is to provide a more intuitive, data-driven way to explore fragrance relationships beyond traditional note pyramids.
 
